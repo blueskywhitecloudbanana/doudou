@@ -86,20 +86,42 @@ function PendingMarker() {
   )
 }
 
-/** 回放时让相机绕人物缓慢自转（仅在播放且未被用户拖动时） */
-function AutoRotate({ controlsRef, active }: { controlsRef: React.RefObject<OrbitControlsImpl>; active: boolean }) {
+/**
+ * 回放时把相机平滑转向当前关注的痘痘位置：
+ * target 缓动到痘痘高度，相机绕到痘痘正面方向、保持俯视距离，让它居中可见。
+ */
+function FocusCamera({
+  controlsRef,
+  focus,
+  active,
+}: {
+  controlsRef: React.RefObject<OrbitControlsImpl>
+  focus: [number, number, number] | null
+  active: boolean
+}) {
+  const desiredTarget = useRef(new THREE.Vector3(0, 0.95, 0))
+  const desiredCam = useRef(new THREE.Vector3(0, 1.25, 2.4))
+
+  useEffect(() => {
+    if (!active || !focus) return
+    const f = new THREE.Vector3(...focus)
+    // 关注点：稍微抬高到痘痘所在高度
+    desiredTarget.current.set(0, f.y, 0)
+    // 痘痘在水平面的朝向（x,z），相机沿该方向退到身体外侧、略微抬高俯视
+    const dir = new THREE.Vector3(f.x, 0, f.z)
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1)
+    dir.normalize()
+    const dist = 0.85
+    desiredCam.current.set(f.x + dir.x * dist, f.y + 0.12, f.z + dir.z * dist)
+  }, [focus, active])
+
   useFrame((_, delta) => {
     if (!active) return
     const c = controlsRef.current
     if (!c) return
-    const cam = c.object
-    const t = c.target
-    const dx = cam.position.x - t.x
-    const dz = cam.position.z - t.z
-    const angle = Math.atan2(dz, dx) + delta * 0.5 // 约 12 秒一圈
-    const radius = Math.hypot(dx, dz)
-    cam.position.x = t.x + Math.cos(angle) * radius
-    cam.position.z = t.z + Math.sin(angle) * radius
+    const k = 1 - Math.pow(0.001, delta) // 平滑系数，约 0.3s 到位
+    c.target.lerp(desiredTarget.current, k)
+    c.object.position.lerp(desiredCam.current, k)
     c.update()
   })
   return null
@@ -171,25 +193,34 @@ export default function BodyView() {
   const [windowDays, setWindowDays] = useState<number>(14)
   const [playing, setPlaying] = useState(false)
   const [cursorDay, setCursorDay] = useState(0) // 0..windowDays，表示从窗口起点过去的天数
+  const [speed, setSpeed] = useState<number>(1) // 0.5=慢 1=中 2=快
 
   const endDate = today()
   const startDate = addDays(endDate, -(windowDays - 1))
   const currentDate = addDays(startDate, Math.floor(cursorDay))
 
-  // 自动播放：逐天推进，到末尾停止
+  // 当天新出现的痘痘日期集合（用于决定每天停留多久 + 相机聚焦）
+  const newDates = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of liveRecords(records)) {
+      if (r.startDate >= startDate && r.startDate <= endDate) set.add(r.startDate)
+    }
+    return set
+  }, [records, startDate, endDate])
+
+  // 自动播放：逐天推进；有新痘的那天停留更久（看清并让相机转到位），空白天快速跳过
   useEffect(() => {
     if (!replayActive || !playing) return
-    const timer = setInterval(() => {
-      setCursorDay((d) => {
-        if (d >= windowDays - 1) {
-          setPlaying(false)
-          return windowDays - 1
-        }
-        return d + 1
-      })
-    }, 700) // 每天约 0.7 秒
-    return () => clearInterval(timer)
-  }, [replayActive, playing, windowDays])
+    if (cursorDay >= windowDays - 1) {
+      setPlaying(false)
+      return
+    }
+    const hasNew = newDates.has(currentDate)
+    const base = hasNew ? 2200 : 450 // 有新痘停 2.2s，空白天 0.45s
+    const delay = base / speed
+    const timer = setTimeout(() => setCursorDay((d) => Math.min(d + 1, windowDays - 1)), delay)
+    return () => clearTimeout(timer)
+  }, [replayActive, playing, windowDays, cursorDay, speed, currentDate, newDates])
 
   const enterReplay = () => {
     setReplayActive(true)
@@ -233,6 +264,18 @@ export default function BodyView() {
     : liveRecords(records).filter((r) => inFilter(r, filterYear, filterMonth))
   const activeCount = visible.filter((r) => !r.endDate).length
 
+  // 回放：相机聚焦点 = 当天新出现痘痘的平均位置（无新痘则不动，保持 null）
+  const focusPoint = useMemo<[number, number, number] | null>(() => {
+    if (!replayActive) return null
+    const todays = replayRecords.filter((r) => r.startDate === currentDate)
+    if (todays.length === 0) return null
+    const sum = todays.reduce(
+      (acc, r) => [acc[0] + r.pos[0], acc[1] + r.pos[1], acc[2] + r.pos[2]] as [number, number, number],
+      [0, 0, 0] as [number, number, number],
+    )
+    return [sum[0] / todays.length, sum[1] / todays.length, sum[2] / todays.length]
+  }, [replayActive, replayRecords, currentDate])
+
   return (
     <div className="body-view">
       <Canvas camera={{ position: [0, 1.25, 2.4], fov: 45 }}>
@@ -257,7 +300,7 @@ export default function BodyView() {
           />
         ))}
         {pending && <PendingMarker />}
-        <AutoRotate controlsRef={controlsRef} active={replayActive && playing} />
+        <FocusCamera controlsRef={controlsRef} focus={focusPoint} active={replayActive && playing} />
         <OrbitControls
           ref={controlsRef}
           target={[0, 0.95, 0]}
@@ -365,6 +408,18 @@ export default function BodyView() {
             </div>
             <div className="replay-range-labels">
               <span>{formatWithWeekday(startDate)}</span>
+              <div className="replay-speed">
+                速度
+                {([['慢', 0.5], ['中', 1], ['快', 2]] as const).map(([label, v]) => (
+                  <button
+                    key={label}
+                    className={speed === v ? 'spd-btn active' : 'spd-btn'}
+                    onClick={() => setSpeed(v)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <span>{formatWithWeekday(endDate)}（今天）</span>
             </div>
           </div>

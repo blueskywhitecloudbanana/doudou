@@ -271,8 +271,33 @@ select {
 .replay-range-labels {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 11px;
   color: #8a8a9a;
+}
+
+.replay-speed {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #9a9ab0;
+}
+
+.spd-btn {
+  background: #232330;
+  border: 1px solid #34344a;
+  border-radius: 6px;
+  padding: 3px 9px;
+  color: #9a9ab0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.spd-btn.active {
+  background: #ff8a65;
+  color: #1a1a24;
+  border-color: transparent;
+  font-weight: 600;
 }
 
 .legend {
