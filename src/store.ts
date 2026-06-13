@@ -153,6 +153,23 @@ export function daysBetween(a: string, b: string): number {
   return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000)
 }
 
+/** 在 YYYY-MM-DD 上加 n 天 */
+export function addDays(date: string, n: number): string {
+  const d = new Date(date)
+  d.setDate(d.getDate() + n)
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+/** YYYY-MM-DD → "6月13日 周五" */
+export function formatWithWeekday(date: string): string {
+  const d = new Date(date)
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${WEEKDAYS[d.getDay()]}`
+}
+
 /** 合并两份记录集（按 id，取 updatedAt 较新者），用于同步与导入 */
 export function mergeRecords(a: AcneRecord[], b: AcneRecord[]): AcneRecord[] {
   const map = new Map<string, AcneRecord>()
