@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/regions.ts","./src/store.ts","./src/sync.ts","./src/types.ts","./src/vite-env.d.ts","./src/components/bodymodel.tsx","./src/components/bodyview.tsx","./src/components/recordsheet.tsx","./src/components/settingsview.tsx","./src/components/statsview.tsx"],"version":"5.9.3"}

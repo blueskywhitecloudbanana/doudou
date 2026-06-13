@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(npm create vite@latest . -- --template react-ts)",
+      "PowerShell(npm install)",
+      "PowerShell(npm run build)",
+      "PowerShell(npm run dev)",
+      "PowerShell(\\(Invoke-WebRequest -Uri http://localhost:5173/ -UseBasicParsing\\).StatusCode)",
+      "WebSearch",
+      "WebFetch(domain:www.thebasemesh.com)",
+      "PowerShell(try { \\(Get-Command blender -ErrorAction Stop\\).Source } catch { 'not found' }; Test-Path 'C:\\\\Program Files\\\\Blender Foundation')",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.blender.org)",
+      "WebFetch(domain:developer.blender.org)",
+      "WebFetch(domain:www.cgchannel.com)",
+      "WebFetch(domain:download.blender.org)",
+      "PowerShell(\\(Invoke-WebRequest -Uri 'https://download.blender.org/demo/asset-bundles/human-base-meshes/' -UseBasicParsing\\).Links | ForEach-Object { $_.href })",
+      "PowerShell(\\(\\(Invoke-WebRequest -Uri 'https://download.blender.org/release/Blender4.2/' -UseBasicParsing\\).Links | ForEach-Object { $_.href }\\) -match 'windows-x64\\\\.zip$')",
+      "PowerShell(New-Item -ItemType Directory -Force \"$env:TEMP\\\\doudou-tools\" | Out-Null; curl.exe -L -sS -o \"$env:TEMP\\\\doudou-tools\\\\hbm.zip\" https://download.blender.org/demo/asset-bundles/human-base-meshes/human-base-meshes-bundle-v1.4.1.zip)",
+      "PowerShell(curl.exe -L -sS -o \"$env:TEMP\\\\doudou-tools\\\\blender.zip\" https://download.blender.org/release/Blender4.2/blender-4.2.21-windows-x64.zip)",
+      "PowerShell(Expand-Archive -Path \"$env:TEMP\\\\doudou-tools\\\\hbm.zip\" -DestinationPath \"$env:TEMP\\\\doudou-tools\\\\hbm\" -Force; Get-ChildItem -Recurse \"$env:TEMP\\\\doudou-tools\\\\hbm\" | Select-Object FullName, Length)",
+      "PowerShell(Get-ChildItem \"$env:TEMP\\\\doudou-tools\\\\hbm\\\\human-base-meshes-bundle-v1.4.1\\\\thumbnails\" | Select-Object -ExpandProperty Name; Get-ChildItem \"$env:TEMP\\\\doudou-tools\\\\hbm\\\\human-base-meshes-bundle-v1.4.1\" -File | Select-Object Name, Length)",
+      "Read(//c/Users/Administrator/AppData/Local/Temp/doudou-tools/hbm/human-base-meshes-bundle-v1.4.1/thumbnails/**)",
+      "PowerShell(Expand-Archive -Path \"$env:TEMP\\\\doudou-tools\\\\blender.zip\" -DestinationPath \"$env:TEMP\\\\doudou-tools\\\\blender\" -Force)",
+      "Skill(fewer-permission-prompts)",
+      "Skill(fewer-permission-prompts:*)",
+      "PowerShell(node \"$env:TEMP\\\\doudou-tools\\\\scan_tools.mjs\")",
+      "PowerShell($blender = Get-ChildItem \"$env:TEMP\\\\doudou-tools\\\\blender\" -Recurse -Filter blender.exe | Select-Object -First 1 -ExpandProperty FullName; $blender; & $blender -b \"$env:TEMP\\\\doudou-tools\\\\hbm\\\\human-base-meshes-bundle-v1.4.1\\\\human_base_meshes_bundle.blend\" -P \"e:\\\\20260511\\\\20260612_cc_doudou\\\\scripts\\\\inspect_bundle.py\" 2>$null)",
+      "PowerShell($blender = \"$env:TEMP\\\\doudou-tools\\\\blender\\\\blender-4.2.21-windows-x64\\\\blender.exe\"; \\(& $blender -b \"$env:TEMP\\\\doudou-tools\\\\hbm\\\\human-base-meshes-bundle-v1.4.1\\\\human_base_meshes_bundle.blend\" -P \"e:\\\\20260511\\\\20260612_cc_doudou\\\\scripts\\\\inspect_islands.py\"\\) | Where-Object { $_ -match '^###|^  faces' })",
+      "PowerShell(New-Item -ItemType Directory -Force \"e:\\\\20260511\\\\20260612_cc_doudou\\\\public\\\\models\" | Out-Null; $blender = \"$env:TEMP\\\\doudou-tools\\\\blender\\\\blender-4.2.21-windows-x64\\\\blender.exe\"; \\(& $blender -b \"$env:TEMP\\\\doudou-tools\\\\hbm\\\\human-base-meshes-bundle-v1.4.1\\\\human_base_meshes_bundle.blend\" -P \"e:\\\\20260511\\\\20260612_cc_doudou\\\\scripts\\\\export_bodies.py\" -- \"e:/20260511/20260612_cc_doudou/public/models\"\\) | Where-Object { $_ -match 'EXPORTED|DONE|Error|Traceback|^  File|error' })",
+      "PowerShell($blender = \"$env:TEMP\\\\doudou-tools\\\\blender\\\\blender-4.2.21-windows-x64\\\\blender.exe\"; \\(& $blender -b \"$env:TEMP\\\\doudou-tools\\\\hbm\\\\human-base-meshes-bundle-v1.4.1\\\\human_base_meshes_bundle.blend\" -P \"e:\\\\20260511\\\\20260612_cc_doudou\\\\scripts\\\\export_bodies.py\" -- \"e:/20260511/20260612_cc_doudou/public/models\"\\) | Where-Object { $_ -match 'EXPORTED|DONE|Error|Traceback' }; Get-ChildItem \"e:\\\\20260511\\\\20260612_cc_doudou\\\\public\\\\models\" | Select-Object Name, Length)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Administrator\\AppData\\Local\\Temp\\doudou-tools"
+    ]
+  }
+}
