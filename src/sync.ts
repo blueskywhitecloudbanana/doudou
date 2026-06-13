@@ -9,13 +9,28 @@ export interface SyncConfig {
   anonKey: string
 }
 
+/** 构建时内置的默认配置（来自环境变量），新设备无需手填 */
+const BUILTIN: SyncConfig | null =
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+    ? {
+        url: import.meta.env.VITE_SUPABASE_URL,
+        anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      }
+    : null
+
+/** 是否存在内置配置（界面据此跳过 URL/key 填写步骤） */
+export function hasBuiltinConfig(): boolean {
+  return BUILTIN !== null
+}
+
 export function getSyncConfig(): SyncConfig | null {
   try {
     const raw = localStorage.getItem(CONFIG_KEY)
-    return raw ? (JSON.parse(raw) as SyncConfig) : null
+    if (raw) return JSON.parse(raw) as SyncConfig
   } catch {
-    return null
+    /* 忽略坏数据，回退到内置配置 */
   }
+  return BUILTIN
 }
 
 export function saveSyncConfig(cfg: SyncConfig | null) {

@@ -3,6 +3,7 @@ import { useStore, liveRecords, mergeRecords } from '../store'
 import {
   getSyncConfig,
   saveSyncConfig,
+  hasBuiltinConfig,
   getUserEmail,
   signIn,
   signUp,
@@ -16,6 +17,7 @@ export default function SettingsView() {
   const records = useStore((s) => s.records)
   const replaceAll = useStore((s) => s.replaceAll)
 
+  const builtin = hasBuiltinConfig()
   const saved = getSyncConfig()
   const [url, setUrl] = useState(saved?.url ?? '')
   const [anonKey, setAnonKey] = useState(saved?.anonKey ?? '')
@@ -106,7 +108,7 @@ export default function SettingsView() {
       <h2>设置</h2>
 
       <h3>云同步（Supabase）</h3>
-      {!configured && (
+      {!configured && !builtin && (
         <>
           <p className="muted">
             在 supabase.com 免费创建项目后，把项目的 URL 和 anon key 填到这里，
@@ -138,6 +140,10 @@ export default function SettingsView() {
         </>
       )}
 
+      {builtin && !userEmail && (
+        <p className="muted">本应用已内置云同步配置，直接用邮箱和密码登录即可。</p>
+      )}
+
       {configured && !userEmail && (
         <>
           <div className="form-row">
@@ -151,7 +157,7 @@ export default function SettingsView() {
           <div className="btn-row">
             <button className="primary-btn" disabled={busy} onClick={() => doAuth('in')}>登录</button>
             <button className="ghost-btn" disabled={busy} onClick={() => doAuth('up')}>注册</button>
-            <button className="ghost-btn" onClick={clearConfig}>清除配置</button>
+            {!builtin && <button className="ghost-btn" onClick={clearConfig}>清除配置</button>}
           </div>
         </>
       )}
