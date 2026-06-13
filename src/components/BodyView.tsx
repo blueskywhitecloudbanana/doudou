@@ -105,14 +105,14 @@ function FocusCamera({
   useEffect(() => {
     if (!active || !focus) return
     const f = new THREE.Vector3(...focus)
-    // 关注点：稍微抬高到痘痘所在高度
-    desiredTarget.current.set(0, f.y, 0)
     // 痘痘在水平面的朝向（x,z），相机沿该方向退到身体外侧、略微抬高俯视
     const dir = new THREE.Vector3(f.x, 0, f.z)
     if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1)
     dir.normalize()
-    const dist = 0.85
-    desiredCam.current.set(f.x + dir.x * dist, f.y + 0.12, f.z + dir.z * dist)
+    // 关注点取痘痘与身体中线之间（让镜头不会贴脸），相机退到较舒适的观察距离
+    desiredTarget.current.set(f.x * 0.5, f.y, f.z * 0.5)
+    const dist = 1.45
+    desiredCam.current.set(f.x + dir.x * dist, f.y + 0.18, f.z + dir.z * dist)
   }, [focus, active])
 
   useFrame((_, delta) => {
@@ -192,41 +192,41 @@ export default function BodyView() {
   const [replayActive, setReplayActive] = useState(false)
   const [windowDays, setWindowDays] = useState<number>(14)
   const [playing, setPlaying] = useState(false)
-  const [cursorDay, setCursorDay] = useState(0) // 0..windowDays，表示从窗口起点过去的天数
-  const [speed, setSpeed] = useState<number>(1) // 0.5=慢 1=中 2=快
+  const [stepIndex, setStepIndex] = useState(0) // 第几个"有痘的日期"
+  const [dwell, setDwell] = useState<number>(2500) // 每个痘痘停留毫秒，可调
 
   const endDate = today()
   const startDate = addDays(endDate, -(windowDays - 1))
-  const currentDate = addDays(startDate, Math.floor(cursorDay))
 
-  // 当天新出现的痘痘日期集合（用于决定每天停留多久 + 相机聚焦）
-  const newDates = useMemo(() => {
+  // 窗口内"有痘出现"的日期，去重并按时间升序——回放只在这些节点之间跳转
+  const replayDates = useMemo(() => {
     const set = new Set<string>()
     for (const r of liveRecords(records)) {
       if (r.startDate >= startDate && r.startDate <= endDate) set.add(r.startDate)
     }
-    return set
+    return [...set].sort()
   }, [records, startDate, endDate])
 
-  // 自动播放：逐天推进；有新痘的那天停留更久（看清并让相机转到位），空白天快速跳过
+  const hasSteps = replayDates.length > 0
+  const safeStep = Math.min(stepIndex, Math.max(0, replayDates.length - 1))
+  const currentDate = hasSteps ? replayDates[safeStep] : endDate
+
+  // 自动播放：按痘痘出现顺序逐个跳转，每个停留 dwell 毫秒，到末尾停止
   useEffect(() => {
-    if (!replayActive || !playing) return
-    if (cursorDay >= windowDays - 1) {
+    if (!replayActive || !playing || !hasSteps) return
+    if (safeStep >= replayDates.length - 1) {
       setPlaying(false)
       return
     }
-    const hasNew = newDates.has(currentDate)
-    const base = hasNew ? 2200 : 450 // 有新痘停 2.2s，空白天 0.45s
-    const delay = base / speed
-    const timer = setTimeout(() => setCursorDay((d) => Math.min(d + 1, windowDays - 1)), delay)
+    const timer = setTimeout(() => setStepIndex((i) => Math.min(i + 1, replayDates.length - 1)), dwell)
     return () => clearTimeout(timer)
-  }, [replayActive, playing, windowDays, cursorDay, speed, currentDate, newDates])
+  }, [replayActive, playing, hasSteps, safeStep, replayDates.length, dwell])
 
   const enterReplay = () => {
     setReplayActive(true)
     setAddMode(false)
     setSelected(null)
-    setCursorDay(0)
+    setStepIndex(0)
     setPlaying(true)
   }
   const exitReplay = () => {
@@ -234,7 +234,7 @@ export default function BodyView() {
     setPlaying(false)
   }
   const restartReplay = () => {
-    setCursorDay(0)
+    setStepIndex(0)
     setPlaying(true)
   }
 
@@ -362,7 +362,9 @@ export default function BodyView() {
             <button className="replay-close" onClick={exitReplay}>✕ 退出回放</button>
             <div className="replay-date">
               <strong>{formatWithWeekday(currentDate)}</strong>
-              <span className="replay-count">已出现 {visible.length} 处</span>
+              <span className="replay-count">
+                {hasSteps ? `第 ${safeStep + 1}/${replayDates.length} 次 · 累计 ${visible.length} 处` : '该时段无记录'}
+              </span>
             </div>
           </div>
 
@@ -374,7 +376,7 @@ export default function BodyView() {
                   className={windowDays === w ? 'win-btn active' : 'win-btn'}
                   onClick={() => {
                     setWindowDays(w)
-                    setCursorDay(0)
+                    setStepIndex(0)
                     setPlaying(true)
                   }}
                 >
@@ -385,42 +387,48 @@ export default function BodyView() {
             <div className="replay-controls">
               <button
                 className="replay-play"
+                disabled={!hasSteps}
                 onClick={() => {
-                  if (cursorDay >= windowDays - 1) restartReplay()
+                  if (safeStep >= replayDates.length - 1) restartReplay()
                   else setPlaying((p) => !p)
                 }}
               >
-                {cursorDay >= windowDays - 1 ? '↻ 重播' : playing ? '⏸ 暂停' : '▶ 播放'}
+                {!hasSteps
+                  ? '无记录'
+                  : safeStep >= replayDates.length - 1
+                    ? '↻ 重播'
+                    : playing
+                      ? '⏸ 暂停'
+                      : '▶ 播放'}
               </button>
               <input
                 type="range"
                 className="replay-range"
                 min={0}
-                max={windowDays - 1}
+                max={Math.max(0, replayDates.length - 1)}
                 step={1}
-                value={cursorDay}
+                value={safeStep}
+                disabled={!hasSteps}
                 onChange={(e) => {
                   setPlaying(false)
-                  setCursorDay(Number(e.target.value))
+                  setStepIndex(Number(e.target.value))
                 }}
               />
-              <span className="replay-day">第 {Math.floor(cursorDay) + 1}/{windowDays} 天</span>
             </div>
             <div className="replay-range-labels">
-              <span>{formatWithWeekday(startDate)}</span>
+              <span>最近 {windowDays} 天</span>
               <div className="replay-speed">
-                速度
-                {([['慢', 0.5], ['中', 1], ['快', 2]] as const).map(([label, v]) => (
+                停留
+                {([['短', 1500], ['中', 2500], ['长', 4000]] as const).map(([label, v]) => (
                   <button
                     key={label}
-                    className={speed === v ? 'spd-btn active' : 'spd-btn'}
-                    onClick={() => setSpeed(v)}
+                    className={dwell === v ? 'spd-btn active' : 'spd-btn'}
+                    onClick={() => setDwell(v)}
                   >
                     {label}
                   </button>
                 ))}
               </div>
-              <span>{formatWithWeekday(endDate)}（今天）</span>
             </div>
           </div>
         </>
