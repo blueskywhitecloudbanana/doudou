@@ -11,6 +11,7 @@ import {
   syncRecords,
   SETUP_SQL,
 } from '../sync'
+import { triggerSync } from '../autosync'
 import type { AcneRecord } from '../types'
 
 export default function SettingsView() {
@@ -60,7 +61,8 @@ export default function SettingsView() {
       setMsg('注册成功。若 Supabase 开启了邮箱验证，请先到邮箱确认再登录。')
     } else {
       setUserEmail(await getUserEmail())
-      setMsg('登录成功')
+      setMsg('登录成功，正在自动同步…')
+      triggerSync()
     }
   }
 
