@@ -22,7 +22,6 @@ export default function RecordSheet() {
   const selectedId = useStore((s) => s.selectedId)
   const setSelected = useStore((s) => s.setSelected)
   const records = useStore((s) => s.records)
-  const modelKey = useStore((s) => s.modelKey)
   const setPendingSize = useStore((s) => s.setPendingSize)
   const setPendingKind = useStore((s) => s.setPendingKind)
   const setPendingTenderness = useStore((s) => s.setPendingTenderness)
@@ -94,7 +93,7 @@ export default function RecordSheet() {
         note,
         part: pending.part,
         region,
-        model: modelKey,
+        model: 'male',
         pos: pending.pos,
         normal: pending.normal,
       })

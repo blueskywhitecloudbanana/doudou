@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
-import type { BodyPart, ModelKey, PendingPoint } from '../types'
+import type { BodyPart, PendingPoint } from '../types'
 import { detectRegion } from '../regions'
 
 /** 顶点色 R 通道编码 id/7，与 scripts/export_bodies.py 中的 PART_IDS 对应 */
@@ -16,13 +16,12 @@ const skinMaterial = new THREE.MeshStandardMaterial({
 const eyeMaterial = new THREE.MeshStandardMaterial({ color: '#e6e6e6', roughness: 0.3 })
 
 interface Props {
-  modelKey: ModelKey
   pickEnabled: boolean
   onPick: (p: PendingPoint) => void
 }
 
-export default function BodyModel({ modelKey, pickEnabled, onPick }: Props) {
-  const { scene } = useGLTF(`/models/body_${modelKey}.glb`)
+export default function BodyModel({ pickEnabled, onPick }: Props) {
+  const { scene } = useGLTF('/models/body_male.glb')
 
   const { minY, height } = useMemo(() => {
     scene.traverse((o) => {
@@ -59,5 +58,4 @@ export default function BodyModel({ modelKey, pickEnabled, onPick }: Props) {
   return <primitive object={scene} onClick={handleClick} />
 }
 
-useGLTF.preload('/models/body_female.glb')
 useGLTF.preload('/models/body_male.glb')

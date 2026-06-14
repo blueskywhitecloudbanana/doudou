@@ -175,8 +175,6 @@ function Marker({ rec, selected, onSelect }: { rec: AcneRecord; selected: boolea
 
 export default function BodyView() {
   const records = useStore((s) => s.records)
-  const modelKey = useStore((s) => s.modelKey)
-  const setModelKey = useStore((s) => s.setModelKey)
   const addMode = useStore((s) => s.addMode)
   const setAddMode = useStore((s) => s.setAddMode)
   const filterYear = useStore((s) => s.filterYear)
@@ -284,7 +282,7 @@ export default function BodyView() {
         <directionalLight position={[2, 4, 3]} intensity={1.1} />
         <directionalLight position={[-2, 2, -3]} intensity={0.45} />
         <Suspense fallback={null}>
-          <BodyModel modelKey={modelKey} pickEnabled={addMode} onPick={setPending} />
+          <BodyModel pickEnabled={addMode} onPick={setPending} />
         </Suspense>
         {/* 地面阴影圆盘 */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
@@ -336,13 +334,6 @@ export default function BodyView() {
             ))}
           </select>
           <span className="count-badge">{visible.length} 条 · {activeCount} 进行中</span>
-          <button
-            className="chip-select model-toggle"
-            title="切换体型"
-            onClick={() => setModelKey(modelKey === 'female' ? 'male' : 'female')}
-          >
-            {modelKey === 'female' ? '体型 ♀' : '体型 ♂'}
-          </button>
           <button className="chip-select" title="时间回放" onClick={enterReplay}>
             ▶ 回放
           </button>

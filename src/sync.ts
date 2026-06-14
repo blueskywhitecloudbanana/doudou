@@ -94,7 +94,10 @@ export async function syncRecords(local: AcneRecord[]): Promise<SyncResult> {
   const { data: rows, error } = await c.from('acne_records').select('id, data')
   if (error) throw new Error(error.message)
 
-  const remote = (rows ?? []).map((r) => r.data as AcneRecord)
+  // 过滤掉损坏/缺字段的云端行，避免 undefined.id 崩溃
+  const remote = (rows ?? [])
+    .map((r) => r.data as AcneRecord | null)
+    .filter((d): d is AcneRecord => !!d && typeof d.id === 'string')
   const remoteMap = new Map(remote.map((r) => [r.id, r]))
   const merged = mergeRecords(remote, local)
 

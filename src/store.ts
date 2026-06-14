@@ -3,14 +3,12 @@ import {
   DEFAULT_SIZE_MM,
   DEFAULT_TENDERNESS,
   type AcneRecord,
-  type ModelKey,
   type PendingPoint,
   type RecordKind,
   type Tenderness,
 } from './types'
 
 const STORAGE_KEY = 'doudou-records'
-const MODEL_KEY = 'doudou-model'
 
 function loadRecords(): AcneRecord[] {
   try {
@@ -32,7 +30,6 @@ export type MonthFilter = number | 'all'
 interface AppState {
   records: AcneRecord[]
   view: View
-  modelKey: ModelKey
   addMode: boolean
   filterYear: YearFilter
   filterMonth: MonthFilter
@@ -47,7 +44,6 @@ interface AppState {
   setPendingSize: (mm: number) => void
   setPendingKind: (k: RecordKind) => void
   setPendingTenderness: (t: Tenderness) => void
-  setModelKey: (m: ModelKey) => void
   setAddMode: (on: boolean) => void
   setFilter: (year: YearFilter, month: MonthFilter) => void
   setPending: (p: PendingPoint | null) => void
@@ -62,7 +58,6 @@ interface AppState {
 export const useStore = create<AppState>((set) => ({
   records: loadRecords(),
   view: 'body',
-  modelKey: (localStorage.getItem(MODEL_KEY) as ModelKey) || 'female',
   addMode: false,
   filterYear: 'all',
   filterMonth: 'all',
@@ -76,10 +71,6 @@ export const useStore = create<AppState>((set) => ({
   setPendingSize: (pendingSize) => set({ pendingSize }),
   setPendingKind: (pendingKind) => set({ pendingKind }),
   setPendingTenderness: (pendingTenderness) => set({ pendingTenderness }),
-  setModelKey: (modelKey) => {
-    localStorage.setItem(MODEL_KEY, modelKey)
-    set({ modelKey, pending: null, selectedId: null })
-  },
   setAddMode: (addMode) => set({ addMode, pending: null, selectedId: null }),
   setFilter: (filterYear, filterMonth) => set({ filterYear, filterMonth }),
   setPending: (pending) => set({ pending, selectedId: null }),
@@ -173,10 +164,13 @@ export function formatWithWeekday(date: string): string {
 /** 合并两份记录集（按 id，取 updatedAt 较新者），用于同步与导入 */
 export function mergeRecords(a: AcneRecord[], b: AcneRecord[]): AcneRecord[] {
   const map = new Map<string, AcneRecord>()
-  for (const r of a) map.set(r.id, r)
+  // 跳过缺少 id 的损坏记录，避免污染或后续崩溃
+  const valid = (r: AcneRecord) => r && typeof r.id === 'string'
+  for (const r of a) if (valid(r)) map.set(r.id, r)
   for (const r of b) {
+    if (!valid(r)) continue
     const cur = map.get(r.id)
-    if (!cur || r.updatedAt > cur.updatedAt) map.set(r.id, r)
+    if (!cur || (r.updatedAt ?? '') > (cur.updatedAt ?? '')) map.set(r.id, r)
   }
   return [...map.values()]
 }
